@@ -1,0 +1,10 @@
+@import "../bem/bem.scss";
+
+@include b("center-layout") {
+  height: 100%;
+  display: grid;
+
+  &__body {
+    margin: auto;
+  }
+}

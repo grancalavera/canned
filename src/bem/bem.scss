@@ -1,0 +1,7 @@
+$ns: "client";
+
+@mixin b($block) {
+  .#{$ns}__#{$block} {
+    @content;
+  }
+}
