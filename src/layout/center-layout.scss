@@ -3,8 +3,5 @@
 @include b("center-layout") {
   height: 100%;
   display: grid;
-
-  &__body {
-    margin: auto;
-  }
+  place-items: center;
 }

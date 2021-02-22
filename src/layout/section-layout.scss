@@ -1,0 +1,13 @@
+@import "../bem/bem.scss";
+
+@include b("section-layout") {
+  height: 100%;
+  width: 600px;
+  margin: auto;
+  display: grid;
+  grid-template-rows: auto 1fr;
+
+  &__header {
+    padding-bottom: 1rem;
+  }
+}

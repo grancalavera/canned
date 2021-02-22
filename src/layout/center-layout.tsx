@@ -9,9 +9,5 @@ interface Props {
 }
 
 export const CenterLayout = ({ children }: Props) => {
-  return (
-    <div className={b()}>
-      <div className={b("body")}>{children}</div>
-    </div>
-  );
+  return <div className={b()}>{children}</div>;
 };

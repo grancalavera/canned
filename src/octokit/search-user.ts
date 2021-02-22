@@ -8,7 +8,9 @@ export const QUERY_KEY = "search-users";
 export const useSearchUsers: CannedQuery<
   RestEndpointMethodTypes["search"]["users"]["parameters"],
   RestEndpointMethodTypes["search"]["users"]["response"]
-> = (params, options) =>
-  useQuery(QUERY_KEY, () => octokitClient.search.users(params), options);
+> = (params, options) => {
+  console.log("params", params);
+  return useQuery(QUERY_KEY, () => octokitClient.search.users(params), options);
+};
 
 export default createCannedQuery(useSearchUsers);
