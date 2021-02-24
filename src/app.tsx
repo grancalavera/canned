@@ -1,6 +1,5 @@
 import React from "react";
 import { QueryClient, QueryClientProvider } from "react-query";
-import "./app.scss";
 import { ErrorBoundary } from "./error/error-boundary";
 import { UserSearch } from "./user/user-search";
 import { ReactQueryDevtools } from "react-query/devtools";

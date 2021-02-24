@@ -1,13 +1,13 @@
 @import "../bem/bem.scss";
 
 @include b("section-layout") {
-  width: 600px;
-  margin: auto;
+  width: 800px;
   height: 100%;
+  margin: auto;
 
   display: grid;
   grid-template-rows: auto 1fr;
-  grid-auto-columns: 100%;
+  grid-template-columns: 100%;
 
   &__header {
     padding-bottom: 1rem;
