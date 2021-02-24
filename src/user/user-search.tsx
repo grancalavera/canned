@@ -5,6 +5,7 @@ import { useSearchUsers } from "../octokit/search-user";
 
 export const UserSearch = () => {
   const [query, setQuery] = useState("");
+  const [input, setInput] = useState("");
 
   const { data, remove, refetch } = useSearchUsers(
     { q: query, per_page: 2 },
@@ -17,25 +18,44 @@ export const UserSearch = () => {
     query && refetch();
   }, [query, refetch]);
 
-  const clear = () => {
-    setQuery("");
-    remove();
-    inputRef.current?.focus();
-  };
-
-  const rightElement = <Button icon="cross" minimal disabled={!query} onClick={clear} />;
+  const controls = (
+    <>
+      {input && (
+        <Button
+          icon="cross"
+          onClick={() => {
+            setQuery("");
+            setInput("");
+            remove();
+            inputRef.current?.focus();
+          }}
+          minimal
+        />
+      )}
+      <Button disabled={!input} intent="primary" type="submit" tabIndex={0}>
+        Search
+      </Button>
+    </>
+  );
 
   const header = (
-    <InputGroup
-      placeholder="Search users"
-      onChange={(e) => setQuery(e.target.value)}
-      {...{ rightElement, inputRef, value: query }}
-    ></InputGroup>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        setQuery(input);
+      }}
+    >
+      <InputGroup
+        placeholder="Search users"
+        onChange={(e) => setInput(e.target.value)}
+        {...{ rightElement: controls, inputRef, value: input }}
+      />
+    </form>
   );
 
   return (
     <SectionLayout header={header}>
-      {data?.data.total_count ? (
+      {data && data?.data.total_count ? (
         <>
           <pre>Total Count: {data?.data.total_count}</pre>
           <pre>Incomplete Results: {data?.data.incomplete_results}</pre>
