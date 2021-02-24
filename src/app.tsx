@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "react-query";
 import "./app.scss";
 import { ErrorBoundary } from "./error/error-boundary";
 import { UserSearch } from "./user/user-search";
+import { ReactQueryDevtools } from "react-query/devtools";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
@@ -11,6 +12,7 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
         <UserSearch></UserSearch>
+        <ReactQueryDevtools />
       </ErrorBoundary>
     </QueryClientProvider>
   );

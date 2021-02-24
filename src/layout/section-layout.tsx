@@ -13,6 +13,6 @@ interface Props {
 export const SectionLayout = ({ children, header }: Props) => (
   <Card className={b()} elevation={Elevation.TWO}>
     <header className={b("header")}>{header}</header>
-    {children}
+    <article className={b("body")}>{children}</article>
   </Card>
 );
