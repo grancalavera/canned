@@ -1,6 +1,6 @@
 import { RestEndpointMethodTypes } from "@octokit/rest";
 import { useQuery } from "react-query";
-import { CannedQuery, createCannedQuery } from "../canned-query/canned-query";
+import { CannedQuery, createCannedQuery } from "../canned/canned-query";
 import { octokitClient } from "./octokit-client";
 
 export const QUERY_KEY = "users.getByUsername";

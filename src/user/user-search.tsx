@@ -1,4 +1,4 @@
-import { Button, Card, InputGroup, NonIdealState } from "@blueprintjs/core";
+import { Button, InputGroup, NonIdealState } from "@blueprintjs/core";
 import React, { useEffect, useRef, useState } from "react";
 import { SectionLayout } from "../layout/section-layout";
 import { useSearchUsers } from "../octokit/search-user";
@@ -50,13 +50,28 @@ export const UserSearch = () => {
       {!q && <SearchPrompt />}
       {data?.data.total_count === 0 && <NoResults />}
       {data?.data.total_count &&
-        data.data.items.map(({ id, login, html_url, avatar_url }) => (
-          <li key={id}>
-            <a href={html_url} target="blank">
-              {login}
-            </a>
-          </li>
-        ))}
+        data.data.items.map(
+          ({
+            id,
+            login,
+            html_url,
+            avatar_url,
+            received_events_url,
+            name,
+            text_matches,
+          }) => (
+            <li key={id}>
+              <p>
+                <a href={html_url} target="blank">
+                  {login}
+                </a>{" "}
+              </p>
+              <p>{received_events_url}</p>
+              <p>name: {name}</p>
+              <p>text matches: {JSON.stringify(text_matches, null, 2)}</p>
+            </li>
+          )
+        )}
     </SectionLayout>
   );
 };

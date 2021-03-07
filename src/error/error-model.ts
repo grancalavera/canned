@@ -1,33 +1,24 @@
-import { RequestError as OctokitRequestError } from "@octokit/types";
+import { RequestError } from "@octokit/types";
 
-export type AppError = OctokitRequestError | CustomError | UnknownError;
+export type ApplicationError = RequestError | SimpleHttpError | CustomError;
 
-interface UnknownError {
-  kind: "UnknownError";
-  error: unknown;
+// https://github.com/microsoft/TypeScript/issues/13965
+// https://github.com/octokit/request-error.js/blob/master/src/index.ts
+
+export class SimpleHttpError extends Error {
+  public readonly status: number;
+  public readonly kind = "SimpleHttpError";
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
 }
 
-interface CustomError {
-  kind: "CustomError";
-  name: string;
-  message: string;
+export class CustomError extends Error {
+  public readonly kind = "CustomError";
 }
 
-export type CustomErrorProps = Omit<CustomError, "kind">;
-
-export const customError = (options: CustomErrorProps): AppError => ({
-  kind: "CustomError",
-  ...options,
-});
-
-export const unknownError = (error: unknown): AppError => ({
-  kind: "UnknownError",
-  error,
-});
-
-export const isRequestError = (error: AppError): error is OctokitRequestError => {
-  const unsafeError = error as any;
-
+export const isRequestError = (unsafeError: any): unsafeError is RequestError => {
   return (
     typeof unsafeError.name === "string" &&
     typeof unsafeError.status === "number" &&

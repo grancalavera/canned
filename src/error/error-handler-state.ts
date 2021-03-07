@@ -1,24 +1,24 @@
 import create, { State } from "zustand";
 import shallow from "zustand/shallow";
-import { AppError, customError, CustomErrorProps, unknownError } from "./error-model";
+import { ApplicationError } from "./error-model";
 
 interface ErrorHandlerState extends State, ErrorState, ErrorHandler {}
 
 interface ErrorState {
-  errors: AppError[];
+  errors: ApplicationError[];
   errorCount: number;
-  nextError?: AppError;
+  nextError?: ApplicationError;
 }
 
 interface ErrorHandler {
-  handleError: (error: AppError) => void;
+  handleError: (error: ApplicationError) => void;
   dismissError: (dismissAll?: boolean) => void;
 }
 
 const useErrorHandlerState = create<ErrorHandlerState>((set) => ({
   errors: [],
   errorCount: 0,
-  handleError: (error: AppError) =>
+  handleError: (error: ApplicationError) =>
     set((state) => {
       const errors = handleError(error, state.errors);
       return { ...deriveErrorState(errors) };
@@ -32,17 +32,8 @@ const useErrorHandlerState = create<ErrorHandlerState>((set) => ({
 
 export const useErrorHandler = () => useErrorHandlerState((s) => s.handleError);
 
-export const useRaiseCustomError = () => {
-  const handleError = useErrorHandler();
-  return (options: CustomErrorProps) => handleError(customError(options));
-};
-
-export const useRaiseUnknownError = () => {
-  const handleError = useErrorHandler();
-  return (error: unknown) => handleError(unknownError(error));
-};
-
 export const useDismissError = () => useErrorHandlerState((s) => s.dismissError);
+
 export const useErrorState = (): ErrorState =>
   useErrorHandlerState(
     ({ errors, nextError, errorCount }) => ({
@@ -53,15 +44,17 @@ export const useErrorState = (): ErrorState =>
     shallow
   );
 
-const handleError = (error: AppError, errors: AppError[] = []): AppError[] => [
-  ...errors,
-  error,
-];
+const handleError = (
+  error: ApplicationError,
+  errors: ApplicationError[] = []
+): ApplicationError[] => [...errors, error];
 
-const dismissError = (dismissAll: boolean, [, ...errors]: AppError[] = []): AppError[] =>
-  dismissAll ? [] : errors;
+const dismissError = (
+  dismissAll: boolean,
+  [, ...errors]: ApplicationError[] = []
+): ApplicationError[] => (dismissAll ? [] : errors);
 
-const deriveErrorState = (errors: AppError[]): ErrorState => ({
+const deriveErrorState = (errors: ApplicationError[]): ErrorState => ({
   errors,
   errorCount: errors.length,
   nextError: errors[0],
