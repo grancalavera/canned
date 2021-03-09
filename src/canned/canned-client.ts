@@ -1,25 +1,28 @@
-export interface CannedMapper<TResponse = any, TModel = any> {
-  // throws TError
-  mapResponse: (response: TResponse) => TModel;
-  // throws TError
-  mapError?: (error: any) => TModel;
+import { successOrThrow, Result, success } from "../fp/result";
+
+export interface CannedMapper<TError extends Error, TResponse = any, TModel = any> {
+  mapResponse: (response: TResponse) => Result<TModel, TError>;
+  mapError?: (error: any) => Result<TModel, TError>;
 }
 
 export type CannedRequest<TResponse = any> = () => Promise<TResponse>;
 
-export const cannedMapper = <TResponse = any, TModel = any>(
-  mapper: CannedMapper<TResponse, TModel>
+// Throws `TError`
+export const cannedMapper = <TError extends Error = Error, TResponse = any, TModel = any>(
+  mapper: CannedMapper<TError, TResponse, TModel>
 ) => async (request: CannedRequest<TResponse>): Promise<TModel> => {
   try {
     const response = await request();
-    const model = mapper.mapResponse(response);
-    return model;
-  } catch (e) {
+    const result = mapper.mapResponse(response);
+    return successOrThrow(result);
+  } catch (error) {
     if (mapper.mapError) {
-      const fallback = mapper.mapError(e);
-      return fallback;
+      const fallback = mapper.mapError(error);
+      return successOrThrow(fallback);
     } else {
-      throw e;
+      throw error;
     }
   }
 };
+
+export const identityMapper = cannedMapper({ mapResponse: success });
