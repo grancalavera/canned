@@ -1,6 +1,11 @@
 import { RequestError } from "@octokit/types";
 import { useEffect } from "react";
-import { QueryObserverResult, UseQueryOptions } from "react-query";
+import {
+  QueryFunctionContext,
+  QueryObserverResult,
+  useQuery,
+  UseQueryOptions,
+} from "react-query";
 import { useErrorHandler } from "../error/error-handler-state";
 import { ApplicationError, CustomError } from "../error/error-model";
 
@@ -39,3 +44,14 @@ export const createCannedQuery = <TParams, TResponse, TModel = TResponse>(
 
   return queryResult;
 };
+
+type MyParams = { id: string; value: number };
+type MyQueryKey = [string, MyParams, [etc: string, z: number]];
+type MyContext = QueryFunctionContext<MyQueryKey>;
+
+type MyQueryFnData = { foo: string; bar: boolean };
+type MyError = Error;
+type MyData = { values: string[] };
+type MyOptions = UseQueryOptions<MyQueryFnData, MyError, MyData>;
+
+const myOptions: MyOptions = {};

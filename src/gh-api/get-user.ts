@@ -9,31 +9,62 @@ export const getUser = (baseUrl: string) => async (username: string) => {
     },
   });
 
-  const clone = response.clone();
+  const result = await parseFetchResponse<any>(response);
+  return result;
+};
+
+type FetchErrorParser<E extends Error> = (response: Response) => Promise<E>;
+
+interface FetchResponseParserOptions<
+  EHttp extends Error = Error,
+  EParse extends Error = Error
+> {
+  parseHTTPError: FetchErrorParser<EHttp>;
+  parseJSONParseError: FetchErrorParser<EParse>;
+}
+
+const fetchResponseParser = <EHttp extends Error = Error, EParse extends Error = Error>(
+  options: FetchResponseParserOptions<EHttp, EParse>
+) => async <T extends unknown = unknown>(response: Response): Promise<T> => {
+  const { parseHTTPError, parseJSONParseError } = options;
+  const responseClone = response.clone();
 
   if (!response.ok) {
-    let error: any;
-    const clone = response.clone();
-
-    try {
-      error = response.json();
-    } catch (e) {
-      error = clone.text();
-    }
-
-    throw new SimpleHttpError(
-      typeof error === "string" ? error : error.message ?? "Request failed",
-      response.status
-    );
+    const error = await parseHTTPError(responseClone);
+    throw error;
   }
 
   try {
     const result = await response.json();
-    return result;
+    return result as T;
   } catch (e) {
-    const text = await clone.text();
-    throw new CustomError(
-      "JSON parse error: " + (e.message ?? "") + ". Response text: " + text
-    );
+    const error = await parseJSONParseError(responseClone);
+    throw error;
   }
 };
+
+const parseHTTPError: FetchErrorParser<SimpleHttpError> = async (response) => {
+  const responseClone = response.clone();
+  let e: any;
+
+  try {
+    e = await response.json();
+  } catch {
+    e = await responseClone.text();
+  }
+
+  const error = new SimpleHttpError(
+    typeof e === "string" ? e : e.message ?? "Request failed",
+    response.status
+  );
+
+  return error;
+};
+
+const parseJSONParseError: FetchErrorParser<CustomError> = async (response) => {
+  const responseText = await response.text();
+  const error = new CustomError(`JSON parse error. Response text: ${responseText}`);
+  return error;
+};
+
+const parseFetchResponse = fetchResponseParser({ parseHTTPError, parseJSONParseError });
