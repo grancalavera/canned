@@ -1,19 +1,25 @@
 import { successOrThrow, Result, success } from "../fp/result";
 
 export interface CannedMapper<TError extends Error, TResponse = any, TModel = any> {
+  /**
+   * Maps DTO to Model, as usual, but optionally can also fail. We can use this to handle
+      "validation errors in disguise": map a 200 status to an application error.
+   */
   mapResponse: (response: TResponse) => Result<TModel, TError>;
-  mapError?: (error: any) => Result<TModel, TError>;
-  handleError?: (error: TError) => void;
-}
 
-export type CannedRequest<TResponse = any> = () => Promise<TResponse>;
+  /**
+   * This is the opposite as above. Maps an error typed with `any` to an error in the
+      application's model. As well can be used to write fallbacks, allowing for example
+      to recover from 404 status to a default resource.
+   */
+  mapError?: (error: any) => Result<TModel, TError>;
+}
 
 // Throws `TError`
 export const resultMapper = <TError extends Error = Error, TResponse = any, TModel = any>(
   mapper: CannedMapper<TError, TResponse, TModel>
-) => async (request: CannedRequest<TResponse>): Promise<TModel> => {
+) => (response: TResponse): TModel => {
   try {
-    const response = await request();
     const result = mapper.mapResponse(response);
     return successOrThrow(result);
   } catch (error) {
@@ -27,21 +33,3 @@ export const resultMapper = <TError extends Error = Error, TResponse = any, TMod
 };
 
 export default resultMapper({ mapResponse: success });
-
-/*
-
-  Parts:
-
-  1. A request, wrapped in the query runner function from react query. In terms of
-    React Query this is called `query function`:
-
-    type QueryFunction<T = unknown> = (context: QueryFunctionContext<any>) => T | Promise<T>;
-
-    interface QueryFunctionContext<TQueryKey extends QueryKey = QueryKey, TPageParam = any> {
-      queryKey: TQueryKey;
-      pageParam?: TPageParam;
-    }
-
-    type QueryKey = string | unknown[];
-
-*/

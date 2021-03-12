@@ -1,31 +1,45 @@
+import { resultMapper } from "../canned/canned-mapper";
 import { CustomError, SimpleHttpError } from "../error/error-model";
 import { auth } from "../octokit/octokit-client";
 
+type GetUserKey = { queryKey: ["get-user", { username: string }] };
+
+export const useGetUser = (username: string) => {
+  const key = ["get-user", { username }];
+};
+
 export const getUser = (baseUrl: string) => async (username: string) => {
-  const response = await fetch(`${baseUrl}/users/${username}`, {
+  return await fetch(`${baseUrl}/users/${username}`, {
     headers: {
       Accept: "application/vnd.github.v3+json",
       Authorization: `Bearer ${auth}`,
     },
   });
-
-  const result = await parseFetchResponse<any>(response);
-  return result;
 };
 
-type FetchErrorParser<E extends Error> = (response: Response) => Promise<E>;
+const getTheUser = async (k: GetUserKey) => {
+  const {
+    queryKey: [, { username }],
+  } = k;
+  const client = getUser("");
+  const a = await client(username);
+  const b = await parseFetchResponse<any>(a);
+  const c = resultMapper(b);
+  return c;
+};
 
-interface FetchResponseParserOptions<
-  EHttp extends Error = Error,
-  EParse extends Error = Error
-> {
-  parseHTTPError: FetchErrorParser<EHttp>;
-  parseJSONParseError: FetchErrorParser<EParse>;
+type FetchErrorParser = (response: Response) => Promise<Error>;
+
+interface FetchResponseParserOptions {
+  parseHTTPError: FetchErrorParser;
+  parseJSONParseError: FetchErrorParser;
 }
 
-const fetchResponseParser = <EHttp extends Error = Error, EParse extends Error = Error>(
-  options: FetchResponseParserOptions<EHttp, EParse>
-) => async <T extends unknown = unknown>(response: Response): Promise<T> => {
+const fetchResponseParser = (options: FetchResponseParserOptions) => async <
+  T extends unknown = unknown
+>(
+  response: Response
+): Promise<T> => {
   const { parseHTTPError, parseJSONParseError } = options;
   const responseClone = response.clone();
 
@@ -43,7 +57,7 @@ const fetchResponseParser = <EHttp extends Error = Error, EParse extends Error =
   }
 };
 
-const parseHTTPError: FetchErrorParser<SimpleHttpError> = async (response) => {
+const parseHTTPError: FetchErrorParser = async (response) => {
   const responseClone = response.clone();
   let e: any;
 
@@ -61,7 +75,7 @@ const parseHTTPError: FetchErrorParser<SimpleHttpError> = async (response) => {
   return error;
 };
 
-const parseJSONParseError: FetchErrorParser<CustomError> = async (response) => {
+const parseJSONParseError: FetchErrorParser = async (response) => {
   const responseText = await response.text();
   const error = new CustomError(`JSON parse error. Response text: ${responseText}`);
   return error;

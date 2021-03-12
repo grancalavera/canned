@@ -1,11 +1,6 @@
 import { RequestError } from "@octokit/types";
 import { useEffect } from "react";
-import {
-  QueryFunctionContext,
-  QueryObserverResult,
-  useQuery,
-  UseQueryOptions,
-} from "react-query";
+import { QueryFunctionContext, QueryObserverResult, useQuery, UseQueryOptions } from "react-query";
 import { useErrorHandler } from "../error/error-handler-state";
 import { ApplicationError, CustomError } from "../error/error-model";
 
@@ -24,8 +19,7 @@ export const createCannedQuery = <TParams, TResponse, TModel = TResponse>(
   useCannedQuery: CannedQuery<TParams, TResponse>
 ) => (
   params: TParams,
-  options?: CannedQueryOptions<TResponse, TModel> &
-    UseQueryOptions<TResponse, RequestError>
+  options?: CannedQueryOptions<TResponse, TModel> & UseQueryOptions<TResponse, RequestError>
 ) => {
   const defaultErrorHandler = useErrorHandler();
 
