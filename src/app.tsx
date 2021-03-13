@@ -1,41 +1,67 @@
 import React from "react";
-import { QueryClient, QueryClientProvider, QueryFunction, useQuery } from "react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
 import { cannedFetchClient } from "./canned/canned-fetch-client";
-import { cannedQueryFunction } from "./canned/canned-query-function";
-import { naiveResponseMapper } from "./canned/canned-response-mapper";
+import { cannedQueryFunction, CannedRequestFn } from "./canned/canned-query-function";
+import {
+  CannedResponseMapper,
+  naiveResponseMapper,
+  alwaysFailResponseMapper,
+  constantMapper,
+} from "./canned/canned-response-mapper";
 import { ErrorBoundary } from "./error/error-boundary";
 import { parseHTTPError, parseJSONParseError } from "./error/error-model";
+import { success } from "./fp/result";
 import { getUser } from "./gh-api/get-user";
 import { octokitClient } from "./octokit/octokit-client";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
-const fetchQueryFn = cannedQueryFunction({
-  key: "user",
-  mapper: naiveResponseMapper,
-  requestFn: cannedFetchClient({
-    fetchFn: getUser,
-    parseHTTPError,
-    parseJSONParseError,
-  }),
+const fetchRequestFn = cannedFetchClient({
+  fetchFn: getUser,
+  parseHTTPError,
+  parseJSONParseError,
 });
-
-const octokitQueryFn = cannedQueryFunction({
-  key: "user",
-  mapper: naiveResponseMapper,
-  requestFn: (params: { username: string }) => octokitClient.users.getByUsername(params),
-});
-
-const username = "grancalavera";
 
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <UserByUsername username={username} queryFn={octokitQueryFn} />
+        <UserByUsername
+          keyString="get-user-1"
+          username="grancalavera"
+          mapper={alwaysFailResponseMapper}
+          requestFn={fetchRequestFn}
+        />
         <hr />
-        <UserByUsername username={username} queryFn={fetchQueryFn} />
+        <UserByUsername
+          keyString="get-user-2"
+          username="juanpicharro"
+          mapper={constantMapper({ username: "Juan Picharro 1" })}
+          requestFn={octokitClient.users.getByUsername}
+        />
+        <hr />
+        <UserByUsername
+          keyString="get-user-3"
+          username="grancalavera"
+          mapper={{
+            mapResponse: success,
+            mapError: () => success({ username: "Juan Picharro 2" }),
+          }}
+          requestFn={octokitClient.users.getByUsername}
+        />
+        <hr />
+        <UserByUsername
+          keyString="get-user-4"
+          username="grancalavera"
+          requestFn={fetchRequestFn}
+        />
+        <hr />
+        <UserByUsername
+          keyString="get-user-5"
+          username="grancalavera"
+          requestFn={octokitClient.users.getByUsername}
+        />
         <ReactQueryDevtools />
       </ErrorBoundary>
     </QueryClientProvider>
@@ -43,12 +69,20 @@ export function App() {
 }
 
 interface UserByUsernameProps {
-  queryFn: QueryFunction;
+  keyString: string;
   username: string;
+  mapper?: CannedResponseMapper<Error, any, any>;
+  requestFn: CannedRequestFn<{ username: string }>;
 }
 
-const UserByUsername = ({ queryFn, username }: UserByUsernameProps) => {
-  const result = useQuery<any, any>(["user", { username }], queryFn);
+const UserByUsername = ({
+  requestFn,
+  username,
+  mapper = naiveResponseMapper,
+  keyString,
+}: UserByUsernameProps) => {
+  const queryFn = cannedQueryFunction({ mapper, requestFn });
+  const result = useQuery<any, any>([keyString, { username }], queryFn);
   return (
     <div>
       <p> isSuccess: {result.isSuccess.toString()}</p>

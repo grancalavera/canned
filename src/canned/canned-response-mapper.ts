@@ -1,4 +1,5 @@
-import { Result, success, successOrThrow } from "../fp/result";
+import { CustomError } from "../error/error-model";
+import { failure, Result, success, successOrThrow } from "../fp/result";
 
 export interface CannedResponseMapper<
   TError extends Error,
@@ -26,19 +27,41 @@ export const cannedResponseMapper = <
   TModel = any
 >(
   mapper: CannedResponseMapper<TError, TResponse, TModel>
-) => (response: TResponse): TModel => {
-  try {
-    const result = mapper.mapResponse(response);
-    return successOrThrow(result);
-  } catch (error) {
+) => {
+  const fromError = (error: any) => {
     if (mapper.mapError) {
       const fallback = mapper.mapError(error);
       return successOrThrow(fallback);
     } else {
       throw error;
     }
-  }
+  };
+
+  const fromResponse = (response: TResponse) => {
+    try {
+      const result = mapper.mapResponse(response);
+      return successOrThrow(result);
+    } catch (error) {
+      return fromError(error);
+    }
+  };
+
+  return { fromResponse, fromError };
 };
 
 export const naiveResponseMapper: CannedResponseMapper<never> = { mapResponse: success };
-export const mapResponseNaively = cannedResponseMapper(naiveResponseMapper);
+export const alwaysFailResponseMapper: CannedResponseMapper<Error> = {
+  mapResponse: () => failure(new CustomError("Always fail.")),
+};
+
+export const alwaysVoidMapper: CannedResponseMapper<Error, void> = {
+  mapResponse: () => success(undefined),
+  mapError: () => success(undefined),
+};
+
+export const constantMapper = <TResponse = any>(
+  response: TResponse
+): CannedResponseMapper<never, TResponse> => ({
+  mapResponse: () => success(response),
+  mapError: () => success(response),
+});
