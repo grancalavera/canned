@@ -25,6 +25,8 @@ const ErrorHandler = () => {
       intent="danger"
       confirmButtonText="Dismiss"
       onConfirm={() => dismissError()}
+      icon="error"
+      className="bp3-dark"
     >
       <div>
         <p>

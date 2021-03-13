@@ -10,12 +10,15 @@ import {
   constantMapper,
 } from "./canned/canned-response-mapper";
 import { ErrorBoundary } from "./error/error-boundary";
+import { useErrorHandler } from "./error/error-handler-state";
 import { parseHTTPError, parseJSONParseError } from "./error/error-model";
 import { success } from "./fp/result";
 import { getUser } from "./gh-api/get-user";
 import { octokitClient } from "./octokit/octokit-client";
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
 
 const fetchRequestFn = cannedFetchClient({
   fetchFn: getUser,
@@ -25,8 +28,8 @@ const fetchRequestFn = cannedFetchClient({
 
 export function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ErrorBoundary>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
         <UserByUsername
           keyString="get-user-1"
           username="grancalavera"
@@ -63,8 +66,8 @@ export function App() {
           requestFn={octokitClient.users.getByUsername}
         />
         <ReactQueryDevtools />
-      </ErrorBoundary>
-    </QueryClientProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
@@ -81,8 +84,12 @@ const UserByUsername = ({
   mapper = naiveResponseMapper,
   keyString,
 }: UserByUsernameProps) => {
-  const queryFn = cannedQueryFunction({ mapper, requestFn });
-  const result = useQuery<any, any>([keyString, { username }], queryFn);
+  const result = useQuery<any, any>({
+    queryKey: [keyString, { username }],
+    queryFn: cannedQueryFunction({ mapper, requestFn }),
+    onError: useErrorHandler(),
+  });
+
   return (
     <div>
       <p> isSuccess: {result.isSuccess.toString()}</p>
