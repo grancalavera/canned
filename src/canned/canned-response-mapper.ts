@@ -1,6 +1,10 @@
-import { successOrThrow, Result, success } from "../fp/result";
+import { Result, success, successOrThrow } from "../fp/result";
 
-export interface CannedMapper<TError extends Error, TResponse = any, TModel = any> {
+export interface CannedResponseMapper<
+  TError extends Error,
+  TResponse = any,
+  TModel = any
+> {
   /**
    * Maps DTO to Model, as usual, but optionally can also fail. We can use this to handle
       "validation errors in disguise": map a 200 status to an application error.
@@ -16,8 +20,12 @@ export interface CannedMapper<TError extends Error, TResponse = any, TModel = an
 }
 
 // Throws `TError`
-export const resultMapper = <TError extends Error = Error, TResponse = any, TModel = any>(
-  mapper: CannedMapper<TError, TResponse, TModel>
+export const cannedResponseMapper = <
+  TError extends Error = Error,
+  TResponse = any,
+  TModel = any
+>(
+  mapper: CannedResponseMapper<TError, TResponse, TModel>
 ) => (response: TResponse): TModel => {
   try {
     const result = mapper.mapResponse(response);
@@ -32,4 +40,5 @@ export const resultMapper = <TError extends Error = Error, TResponse = any, TMod
   }
 };
 
-export default resultMapper({ mapResponse: success });
+export const naiveResponseMapper: CannedResponseMapper<never> = { mapResponse: success };
+export const mapResponseNaively = cannedResponseMapper(naiveResponseMapper);
