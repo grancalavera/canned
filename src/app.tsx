@@ -4,21 +4,21 @@ import { ReactQueryDevtools } from "react-query/devtools";
 import { cannedFetchClient } from "./canned/canned-fetch-client";
 import { cannedQueryFunction, CannedRequestFn } from "./canned/canned-query-function";
 import {
-  CannedResponseMapper,
-  naiveResponseMapper,
   alwaysFailResponseMapper,
+  CannedResponseMapper,
   constantMapper,
+  naiveResponseMapper,
 } from "./canned/canned-response-mapper";
 import { ErrorBoundary } from "./error/error-boundary";
 import { useErrorHandler } from "./error/error-handler-state";
-import { parseHTTPError, parseJSONParseError } from "./error/error-model";
+import {
+  isApplicationError,
+  parseHTTPError,
+  parseJSONParseError,
+} from "./error/error-model";
 import { success } from "./fp/result";
 import { getUser } from "./gh-api/get-user";
 import { octokitClient } from "./octokit/octokit-client";
-
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: false } },
-});
 
 const fetchRequestFn = cannedFetchClient({
   fetchFn: getUser,
@@ -27,6 +27,20 @@ const fetchRequestFn = cannedFetchClient({
 });
 
 export function App() {
+  const handleError = useErrorHandler();
+
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        onError: (e) => {
+          if (isApplicationError(e)) {
+            handleError(e);
+          }
+        },
+        retry: false,
+      },
+    },
+  });
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
@@ -87,7 +101,6 @@ const UserByUsername = ({
   const result = useQuery<any, any>({
     queryKey: [keyString, { username }],
     queryFn: cannedQueryFunction({ mapper, requestFn }),
-    onError: useErrorHandler(),
   });
 
   return (

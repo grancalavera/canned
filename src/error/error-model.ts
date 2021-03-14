@@ -51,3 +51,11 @@ export const parseJSONParseError: FetchErrorParser = async (response) => {
   const error = new CustomError(`JSON parse error. Response text: ${responseText}`);
   return error;
 };
+
+export const isApplicationError = (e: unknown): e is ApplicationError => {
+  return (
+    isRequestError(e) ||
+    (e as any).kind === "CustomError" ||
+    (e as any).kind === "SimpleHttpError"
+  );
+};
