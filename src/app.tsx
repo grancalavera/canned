@@ -1,4 +1,5 @@
-import React from "react";
+import { Octokit } from "@octokit/rest";
+import React, { ErrorInfo } from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
 import { cannedFetchClient } from "./canned/canned-fetch-client";
@@ -9,84 +10,113 @@ import {
   constantMapper,
   naiveResponseMapper,
 } from "./canned/canned-response-mapper";
-import { ErrorBoundary } from "./error/error-boundary";
-import { useErrorHandler } from "./error/error-handler-state";
-import {
-  isApplicationError,
-  parseHTTPError,
-  parseJSONParseError,
-} from "./error/error-model";
+import { parseHTTPError, parseJSONParseError } from "./error/error-model";
 import { success } from "./fp/result";
-import { getUser } from "./gh-api/get-user";
-import { octokitClient } from "./octokit/octokit-client";
 
-const fetchRequestFn = cannedFetchClient({
-  fetchFn: getUser,
+export const auth = process.env.REACT_APP_GITHUB_TOKEN;
+export const octokitClient = new Octokit({ auth });
+
+const getUserWithFetch = cannedFetchClient<{ username: string }>({
+  fetchFn: ({ username }) =>
+    fetch(`https://api.github.com/users/${username}`, {
+      headers: {
+        Accept: "application/vnd.github.v3+json",
+        Authorization: `Bearer ${auth}`,
+      },
+    }),
   parseHTTPError,
   parseJSONParseError,
 });
 
-export function App() {
-  const handleError = useErrorHandler();
+const getUserWithOctokit = octokitClient.users.getByUsername;
 
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        onError: (e) => {
-          if (isApplicationError(e)) {
-            handleError(e);
-          }
-        },
-        retry: false,
-      },
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
     },
-  });
+  },
+});
+
+export function App() {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <UserByUsername
-          keyString="get-user-1"
-          username="grancalavera"
-          mapper={alwaysFailResponseMapper}
-          requestFn={fetchRequestFn}
-        />
-        <hr />
-        <UserByUsername
-          keyString="get-user-2"
-          username="juanpicharro"
-          mapper={constantMapper({ username: "Juan Picharro 1" })}
-          requestFn={octokitClient.users.getByUsername}
-        />
-        <hr />
-        <UserByUsername
-          keyString="get-user-3"
-          username="grancalavera"
-          mapper={{
-            mapResponse: success,
-            mapError: () => success({ username: "Juan Picharro 2" }),
-          }}
-          requestFn={octokitClient.users.getByUsername}
-        />
-        <hr />
-        <UserByUsername
-          keyString="get-user-4"
-          username="grancalavera"
-          requestFn={fetchRequestFn}
-        />
-        <hr />
-        <UserByUsername
-          keyString="get-user-5"
-          username="grancalavera"
-          requestFn={octokitClient.users.getByUsername}
-        />
-        <ReactQueryDevtools />
-      </QueryClientProvider>
+      <Example />
     </ErrorBoundary>
   );
 }
 
+class ErrorBoundary extends React.Component<{}, { error?: Error }> {
+  constructor(props: {}) {
+    super(props);
+    this.state = { error: undefined };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.log(error, errorInfo);
+  }
+
+  render() {
+    // if (this.state.error) {
+    //   alert(`Error handled: ${this.state.error}`);
+    // }
+
+    if (this.state.error) {
+      return <>Bad stuff</>;
+    } else {
+      return this.props.children;
+    }
+  }
+}
+
+const Example = () => (
+  <QueryClientProvider client={queryClient}>
+    <TimeBomb />
+    <UserByUsername
+      queryKey="get-user-1"
+      username="grancalavera"
+      mapper={alwaysFailResponseMapper}
+      requestFn={getUserWithFetch}
+    />
+    <hr />
+    <UserByUsername
+      queryKey="get-user-2"
+      username="juanqwerty"
+      mapper={constantMapper({ username: "Juan Qwerty 1" })}
+      requestFn={getUserWithOctokit}
+    />
+    <hr />
+    <UserByUsername
+      queryKey="get-user-3"
+      username="grancalavera"
+      mapper={{
+        mapResponse: success,
+        mapError: () => success({ username: "Juan Qwerty 2" }),
+      }}
+      requestFn={getUserWithOctokit}
+    />
+    <hr />
+    <UserByUsername
+      queryKey="get-user-4"
+      username="grancalavera"
+      requestFn={getUserWithFetch}
+    />
+    <hr />
+    <UserByUsername
+      queryKey="get-user-5"
+      username="grancalavera"
+      requestFn={getUserWithOctokit}
+    />
+    <ReactQueryDevtools />
+  </QueryClientProvider>
+);
+
 interface UserByUsernameProps {
-  keyString: string;
+  queryKey: string;
   username: string;
   mapper?: CannedResponseMapper<Error, any, any>;
   requestFn: CannedRequestFn<{ username: string }>;
@@ -96,11 +126,12 @@ const UserByUsername = ({
   requestFn,
   username,
   mapper = naiveResponseMapper,
-  keyString,
+  queryKey: keyString,
 }: UserByUsernameProps) => {
   const result = useQuery<any, any>({
     queryKey: [keyString, { username }],
     queryFn: cannedQueryFunction({ mapper, requestFn }),
+    // useErrorBoundary: true,
   });
 
   return (
@@ -113,4 +144,12 @@ const UserByUsername = ({
       </p>
     </div>
   );
+};
+
+const TimeBomb = () => {
+  setTimeout(() => {
+    throw new Error("Boom!");
+  }, 1000);
+
+  return null;
 };

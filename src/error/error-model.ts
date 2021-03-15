@@ -1,7 +1,7 @@
 import { RequestError } from "@octokit/types";
 import { FetchErrorParser } from "../canned/canned-response-parser";
 
-export type ApplicationError = RequestError | SimpleHttpError | CustomError;
+export type ApplicationError = RequestError | SimpleHttpError | CustomError | Error;
 
 // https://github.com/microsoft/TypeScript/issues/13965
 // https://github.com/octokit/request-error.js/blob/master/src/index.ts
