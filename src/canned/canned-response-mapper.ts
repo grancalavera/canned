@@ -62,6 +62,10 @@ export const alwaysVoidMapper: CannedResponseMapper<Error, void> = {
 export const constantMapper = <TResponse = any>(
   response: TResponse
 ): CannedResponseMapper<never, TResponse> => ({
-  mapResponse: () => success(response),
-  mapError: () => success(response),
+  mapResponse: () => {
+    return success(response);
+  },
+  mapError: () => {
+    return success(response);
+  },
 });

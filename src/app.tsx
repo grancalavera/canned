@@ -1,5 +1,5 @@
 import { Octokit } from "@octokit/rest";
-import React, { ErrorInfo } from "react";
+import React, { ErrorInfo, useState } from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
 import { cannedFetchClient } from "./canned/canned-fetch-client";
@@ -10,7 +10,11 @@ import {
   constantMapper,
   naiveResponseMapper,
 } from "./canned/canned-response-mapper";
-import { parseHTTPError, parseJSONParseError } from "./error/error-model";
+import {
+  ApplicationError,
+  parseHTTPError,
+  parseJSONParseError,
+} from "./error/error-model";
 import { success } from "./fp/result";
 
 export const auth = process.env.REACT_APP_GITHUB_TOKEN;
@@ -29,6 +33,7 @@ const getUserWithFetch = cannedFetchClient<{ username: string }>({
 });
 
 const getUserWithOctokit = octokitClient.users.getByUsername;
+const errorStyle = { backgroundColor: "red", color: "white", padding: 10 };
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,21 +44,85 @@ const queryClient = new QueryClient({
 });
 
 export function App() {
+  const [error, handleError] = useState<Error>();
+
   return (
-    <ErrorBoundary>
-      <Example />
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      {error && (
+        <div style={errorStyle}>
+          <h1>Error!</h1>
+          <p>{error.message}</p>
+        </div>
+      )}
+      <h1>Failures</h1>
+      <ErrorBoundary>
+        <UserByUsername
+          queryKey="get-user-1"
+          username="grancalavera"
+          mapper={alwaysFailResponseMapper}
+          requestFn={getUserWithFetch}
+        />
+      </ErrorBoundary>
+      <hr />
+      <ErrorBoundary>
+        <UserByUsername
+          queryKey="get-user-2"
+          username="juanqwerty"
+          requestFn={getUserWithOctokit}
+          handleError={handleError}
+        />
+      </ErrorBoundary>
+      <hr />
+      <h1>Successes</h1>
+      <ErrorBoundary>
+        <UserByUsername
+          queryKey="get-user-3"
+          username="juanqwerty"
+          mapper={constantMapper({ username: "Juan Qwerty" })}
+          requestFn={getUserWithOctokit}
+        />
+      </ErrorBoundary>
+      <hr />
+      <ErrorBoundary>
+        <UserByUsername
+          queryKey="get-user-4"
+          username="juanqwerty"
+          mapper={{
+            mapResponse: success,
+            mapError: () => success({ username: "Juan Qwerty" }),
+          }}
+          requestFn={getUserWithOctokit}
+        />
+      </ErrorBoundary>
+      <hr />
+      <ErrorBoundary>
+        <UserByUsername
+          queryKey="get-user-5"
+          username="grancalavera"
+          requestFn={getUserWithFetch}
+        />
+      </ErrorBoundary>
+      <hr />
+      <ErrorBoundary>
+        <UserByUsername
+          queryKey="get-user-6"
+          username="grancalavera"
+          requestFn={getUserWithOctokit}
+        />
+      </ErrorBoundary>
+      <ReactQueryDevtools />
+    </QueryClientProvider>
   );
 }
 
-class ErrorBoundary extends React.Component<{}, { error?: Error }> {
+class ErrorBoundary extends React.Component<{}, { hasError: boolean }> {
   constructor(props: {}) {
     super(props);
-    this.state = { error: undefined };
+    this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error) {
-    return { error };
+  static getDerivedStateFromError() {
+    return { hasError: true };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -61,65 +130,20 @@ class ErrorBoundary extends React.Component<{}, { error?: Error }> {
   }
 
   render() {
-    // if (this.state.error) {
-    //   alert(`Error handled: ${this.state.error}`);
-    // }
-
-    if (this.state.error) {
-      return <>Bad stuff</>;
+    if (this.state.hasError) {
+      return <h1>Something went wrong.</h1>;
     } else {
       return this.props.children;
     }
   }
 }
 
-const Example = () => (
-  <QueryClientProvider client={queryClient}>
-    <TimeBomb />
-    <UserByUsername
-      queryKey="get-user-1"
-      username="grancalavera"
-      mapper={alwaysFailResponseMapper}
-      requestFn={getUserWithFetch}
-    />
-    <hr />
-    <UserByUsername
-      queryKey="get-user-2"
-      username="juanqwerty"
-      mapper={constantMapper({ username: "Juan Qwerty 1" })}
-      requestFn={getUserWithOctokit}
-    />
-    <hr />
-    <UserByUsername
-      queryKey="get-user-3"
-      username="grancalavera"
-      mapper={{
-        mapResponse: success,
-        mapError: () => success({ username: "Juan Qwerty 2" }),
-      }}
-      requestFn={getUserWithOctokit}
-    />
-    <hr />
-    <UserByUsername
-      queryKey="get-user-4"
-      username="grancalavera"
-      requestFn={getUserWithFetch}
-    />
-    <hr />
-    <UserByUsername
-      queryKey="get-user-5"
-      username="grancalavera"
-      requestFn={getUserWithOctokit}
-    />
-    <ReactQueryDevtools />
-  </QueryClientProvider>
-);
-
 interface UserByUsernameProps {
   queryKey: string;
   username: string;
   mapper?: CannedResponseMapper<Error, any, any>;
   requestFn: CannedRequestFn<{ username: string }>;
+  handleError?: (error: Error) => void;
 }
 
 const UserByUsername = ({
@@ -127,29 +151,21 @@ const UserByUsername = ({
   username,
   mapper = naiveResponseMapper,
   queryKey: keyString,
+  handleError,
 }: UserByUsernameProps) => {
   const result = useQuery<any, any>({
     queryKey: [keyString, { username }],
     queryFn: cannedQueryFunction({ mapper, requestFn }),
-    // useErrorBoundary: true,
+    useErrorBoundary: !handleError,
+    onError: handleError,
   });
 
   return (
-    <div>
-      <p> isSuccess: {result.isSuccess.toString()}</p>
-      <p> isError: {result.isError.toString()}</p>
+    <>
       <pre>{JSON.stringify(result.data, null, 2)}</pre>
-      <p>
-        {result.error?.status} {result.error?.toString()}
-      </p>
-    </div>
+      {result.error && (
+        <pre style={errorStyle}>{JSON.stringify(result.error, null, 2)}</pre>
+      )}
+    </>
   );
-};
-
-const TimeBomb = () => {
-  setTimeout(() => {
-    throw new Error("Boom!");
-  }, 1000);
-
-  return null;
 };

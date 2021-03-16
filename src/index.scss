@@ -1,24 +1,12 @@
 @import "~normalize.css";
-@import "~@blueprintjs/core/lib/css/blueprint.css";
-@import "~@blueprintjs/icons/lib/css/blueprint-icons.css";
-@import "~@blueprintjs/core/lib/scss/variables";
 
 html,
 body {
   margin: 0;
-  padding: 0;
+  padding: 20px;
 }
 
 body {
   box-sizing: border-box;
-  background-color: $pt-dark-app-background-color;
-  width: 100vw;
-  height: 100vh;
-  display: grid;
-  place-items: center;
-}
-
-#root {
-  height: calc(100vh - 1rem);
-  width: calc(100vw - 1rem);
+  font-family: monospace;
 }
