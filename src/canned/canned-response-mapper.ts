@@ -1,4 +1,4 @@
-import { failure, Result, success, successOrThrow } from "../fp/result";
+import { failure, Result, success, successOrThrow } from "./result";
 
 export interface CannedResponseMapper<
   TError extends Error,
@@ -48,9 +48,9 @@ export const cannedResponseMapper = <
   return { fromResponse, fromError };
 };
 
-export const naiveResponseMapper: CannedResponseMapper<never> = { mapResponse: success };
+export const naiveMapper: CannedResponseMapper<never> = { mapResponse: success };
 export const alwaysFailResponseMapper: CannedResponseMapper<Error> = {
-  mapResponse: () => failure(new Error("Always fail.")),
+  mapResponse: () => failure(new Error("Always fail")),
 };
 
 export const alwaysVoidMapper: CannedResponseMapper<Error, void> = {

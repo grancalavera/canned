@@ -1,5 +1,5 @@
 import { Octokit } from "@octokit/rest";
-import React, { ErrorInfo, useState } from "react";
+import React, { ErrorInfo, useCallback, useState } from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
 import { cannedFetchClient } from "./canned/canned-fetch-client";
@@ -8,44 +8,63 @@ import {
   alwaysFailResponseMapper,
   CannedResponseMapper,
   constantMapper,
-  naiveResponseMapper,
+  naiveMapper,
 } from "./canned/canned-response-mapper";
 import { parseHTTPError, parseJSONParseError } from "./error/error-model";
-import { success } from "./fp/result";
+import { success } from "./canned/result";
 
 export const auth = process.env.REACT_APP_GITHUB_TOKEN;
 export const octokitClient = new Octokit({ auth });
 
-const getUserWithFetch = cannedFetchClient<{ username: string }>({
-  fetchFn: ({ username }) =>
-    fetch(`https://api.github.com/users/${username}`, {
-      headers: {
-        Accept: "application/vnd.github.v3+json",
-        Authorization: `Bearer ${auth}`,
-      },
-    }),
-  parseHTTPError,
-  parseJSONParseError,
-});
+interface UserByUsernameProps {
+  queryKey: string;
+  username: string;
+  requestFn: CannedRequestFn<{ username: string }>;
+  mapper?: CannedResponseMapper<Error, any, any>;
+  handleError?: (error: Error) => void;
+}
 
-const getUserWithOctokit = octokitClient.users.getByUsername;
-const errorStyle = { backgroundColor: "red", color: "white", padding: 10 };
+const UserByUsername = ({
+  requestFn,
+  username,
+  mapper = naiveMapper,
+  queryKey: keyString,
+  handleError,
+}: UserByUsernameProps) => {
+  const result = useQuery({
+    queryKey: [keyString, { username }],
+    queryFn: cannedQueryFunction({ mapper, requestFn }),
+    useErrorBoundary: !handleError,
+    onError: handleError,
+  });
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
+  return (
+    <>
+      {result.data && <pre>{JSON.stringify(result.data, null, 2)}</pre>}
+      {result.error && <ShowError error={result.error} title="Component" />}
+    </>
+  );
+};
 
-export function App() {
-  const [error, handleError] = useState<Error>();
+export const App = () => {
+  const [errors, setErrors] = useState<Error[]>([]);
+
+  const handleError = useCallback((e: Error) => {
+    setErrors((es) => [...es, e]);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
-      {error && <ShowError error={error} />}
-      <h1>Failures</h1>
+      {errors.map((e, i) => (
+        <div key={`error-${i}`}>
+          <ShowError
+            error={e}
+            title={`Global Error Handler (${i + 1} of ${errors.length})`}
+          />
+          <hr />
+        </div>
+      ))}
+      {/* Failures */}
       <ErrorBoundary>
         <UserByUsername
           queryKey="get-user-1"
@@ -64,7 +83,8 @@ export function App() {
         />
       </ErrorBoundary>
       <hr />
-      <h1>Successes</h1>
+
+      {/* Successes */}
       <ErrorBoundary>
         <UserByUsername
           queryKey="get-user-3"
@@ -104,7 +124,7 @@ export function App() {
       <ReactQueryDevtools />
     </QueryClientProvider>
   );
-}
+};
 
 class ErrorBoundary extends React.Component<{}, { error?: Error }> {
   constructor(props: {}) {
@@ -122,48 +142,41 @@ class ErrorBoundary extends React.Component<{}, { error?: Error }> {
 
   render() {
     if (this.state.error) {
-      return <ShowError error={this.state.error} />;
+      return <ShowError error={this.state.error} title="Error Boundary" />;
     } else {
       return this.props.children;
     }
   }
 }
 
-interface UserByUsernameProps {
-  queryKey: string;
-  username: string;
-  requestFn: CannedRequestFn<{ username: string }>;
-  mapper?: CannedResponseMapper<Error, any, any>;
-  handleError?: (error: Error) => void;
-}
-
-const UserByUsername = ({
-  requestFn,
-  username,
-  mapper = naiveResponseMapper,
-  queryKey: keyString,
-  handleError,
-}: UserByUsernameProps) => {
-  const result = useQuery({
-    queryKey: [keyString, { username }],
-    queryFn: cannedQueryFunction({ mapper, requestFn }),
-    useErrorBoundary: !handleError,
-    onError: handleError,
-  });
-
-  return (
-    <>
-      {result.data && <pre>{JSON.stringify(result.data, null, 2)}</pre>}
-      {result.error && <ShowError error={result.error} />}
-    </>
-  );
-};
-
-const ShowError = ({ error }: { error: Error }) => {
+const ShowError = ({ error, title }: { error: Error; title: string }) => {
   return (
     <div style={errorStyle}>
-      <h1>Error!</h1>
-      <pre style={errorStyle}>{JSON.stringify(error, null, 2)}</pre>
+      <h1>{title}</h1>
+      <pre>{error.toString()}</pre>
     </div>
   );
 };
+
+const getUserWithFetch = cannedFetchClient<{ username: string }>({
+  fetchFn: ({ username }) =>
+    fetch(`https://api.github.com/users/${username}`, {
+      headers: {
+        Accept: "application/vnd.github.v3+json",
+        Authorization: `Bearer ${auth}`,
+      },
+    }),
+  parseHTTPError,
+  parseJSONParseError,
+});
+
+const getUserWithOctokit = octokitClient.users.getByUsername;
+const errorStyle = { backgroundColor: "red", color: "white", padding: 10 };
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
