@@ -10,11 +10,7 @@ import {
   constantMapper,
   naiveResponseMapper,
 } from "./canned/canned-response-mapper";
-import {
-  ApplicationError,
-  parseHTTPError,
-  parseJSONParseError,
-} from "./error/error-model";
+import { parseHTTPError, parseJSONParseError } from "./error/error-model";
 import { success } from "./fp/result";
 
 export const auth = process.env.REACT_APP_GITHUB_TOKEN;
