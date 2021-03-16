@@ -48,12 +48,7 @@ export function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {error && (
-        <div style={errorStyle}>
-          <h1>Error!</h1>
-          <p>{error.message}</p>
-        </div>
-      )}
+      {error && <ShowError error={error} />}
       <h1>Failures</h1>
       <ErrorBoundary>
         <UserByUsername
@@ -115,14 +110,14 @@ export function App() {
   );
 }
 
-class ErrorBoundary extends React.Component<{}, { hasError: boolean }> {
+class ErrorBoundary extends React.Component<{}, { error?: Error }> {
   constructor(props: {}) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { error: undefined };
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error) {
+    return { error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -130,8 +125,8 @@ class ErrorBoundary extends React.Component<{}, { hasError: boolean }> {
   }
 
   render() {
-    if (this.state.hasError) {
-      return <h1>Something went wrong.</h1>;
+    if (this.state.error) {
+      return <ShowError error={this.state.error} />;
     } else {
       return this.props.children;
     }
@@ -141,8 +136,8 @@ class ErrorBoundary extends React.Component<{}, { hasError: boolean }> {
 interface UserByUsernameProps {
   queryKey: string;
   username: string;
-  mapper?: CannedResponseMapper<Error, any, any>;
   requestFn: CannedRequestFn<{ username: string }>;
+  mapper?: CannedResponseMapper<Error, any, any>;
   handleError?: (error: Error) => void;
 }
 
@@ -153,7 +148,7 @@ const UserByUsername = ({
   queryKey: keyString,
   handleError,
 }: UserByUsernameProps) => {
-  const result = useQuery<any, any>({
+  const result = useQuery({
     queryKey: [keyString, { username }],
     queryFn: cannedQueryFunction({ mapper, requestFn }),
     useErrorBoundary: !handleError,
@@ -162,10 +157,17 @@ const UserByUsername = ({
 
   return (
     <>
-      <pre>{JSON.stringify(result.data, null, 2)}</pre>
-      {result.error && (
-        <pre style={errorStyle}>{JSON.stringify(result.error, null, 2)}</pre>
-      )}
+      {result.data && <pre>{JSON.stringify(result.data, null, 2)}</pre>}
+      {result.error && <ShowError error={result.error} />}
     </>
+  );
+};
+
+const ShowError = ({ error }: { error: Error }) => {
+  return (
+    <div style={errorStyle}>
+      <h1>Error!</h1>
+      <pre style={errorStyle}>{JSON.stringify(error, null, 2)}</pre>
+    </div>
   );
 };
