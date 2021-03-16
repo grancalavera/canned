@@ -1,4 +1,3 @@
-import { CustomError } from "../error/error-model";
 import { failure, Result, success, successOrThrow } from "../fp/result";
 
 export interface CannedResponseMapper<
@@ -51,7 +50,7 @@ export const cannedResponseMapper = <
 
 export const naiveResponseMapper: CannedResponseMapper<never> = { mapResponse: success };
 export const alwaysFailResponseMapper: CannedResponseMapper<Error> = {
-  mapResponse: () => failure(new CustomError("Always fail.")),
+  mapResponse: () => failure(new Error("Always fail.")),
 };
 
 export const alwaysVoidMapper: CannedResponseMapper<Error, void> = {
