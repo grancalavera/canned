@@ -1,36 +1,38 @@
-import { failure, Result, success, successOrThrow } from "./result";
-
 /**
  * Specification for response mapping.
  */
-export interface CannedResponseMapper<
-  TError extends Error,
-  TResponse = any,
-  TModel = any
-> {
+export interface CannedResponseMapperOptions<TResponse = any, TModel = any> {
   /**
    * Maps a request response response to the application's data model.
+   * @throws {Error} if TResponse fails to map to TModel
    */
-  mapResponse: (response: TResponse) => Result<TModel, TError>;
+  mapResponse: (response: TResponse) => TModel;
 
   /**
    * Maps a request error into the application's data model.
+   * @throws {Error} if error fails to map to TModel
    */
-  mapError?: (error: any) => Result<TModel, TError>;
+  mapError?: (error: any) => TModel;
 }
 
-// Throws `TError`
-export const cannedResponseMapper = <
-  TError extends Error = Error,
-  TResponse = any,
-  TModel = any
->(
-  mapper: CannedResponseMapper<TError, TResponse, TModel>
-) => {
+interface CannedResponseMapper<TResponse = any, TModel = any> {
+  fromResponse: (response: TResponse) => TModel;
+  fromError: (error: any) => TModel;
+}
+
+/**
+ * Creates a pair of function to map successful Response or Errors into
+ * an arbitrary model.
+ * @param mapper the mapper configuration CannedResponseMapper<TResponse, TModel>
+ * @returns CannedMappingFns<TResponse, TModel>
+ */
+export const cannedResponseMapper = <TResponse = any, TModel = any>(
+  mapper: CannedResponseMapperOptions<TResponse, TModel>
+): CannedResponseMapper<TResponse, TModel> => {
   const fromError = (error: any) => {
     if (mapper.mapError) {
       const fallback = mapper.mapError(error);
-      return successOrThrow(fallback);
+      return fallback;
     } else {
       throw error;
     }
@@ -39,7 +41,7 @@ export const cannedResponseMapper = <
   const fromResponse = (response: TResponse) => {
     try {
       const result = mapper.mapResponse(response);
-      return successOrThrow(result);
+      return result;
     } catch (error) {
       return fromError(error);
     }
@@ -48,23 +50,27 @@ export const cannedResponseMapper = <
   return { fromResponse, fromError };
 };
 
-export const naiveMapper: CannedResponseMapper<never> = { mapResponse: success };
-export const alwaysFailResponseMapper: CannedResponseMapper<Error> = {
-  mapResponse: () => failure(new Error("Always fail")),
+export const naiveMapper: CannedResponseMapperOptions<unknown> = {
+  mapResponse: (x) => x,
+};
+export const alwaysFailResponseMapper: CannedResponseMapperOptions<Error> = {
+  mapResponse: () => {
+    throw new Error("Always fail");
+  },
 };
 
-export const alwaysVoidMapper: CannedResponseMapper<Error, void> = {
-  mapResponse: () => success(undefined),
-  mapError: () => success(undefined),
+export const alwaysVoidMapper: CannedResponseMapperOptions<Error, void> = {
+  mapResponse: () => undefined,
+  mapError: () => undefined,
 };
 
 export const constantMapper = <TResponse = any>(
   response: TResponse
-): CannedResponseMapper<never, TResponse> => ({
+): CannedResponseMapperOptions<unknown, TResponse> => ({
   mapResponse: () => {
-    return success(response);
+    return response;
   },
   mapError: () => {
-    return success(response);
+    return response;
   },
 });

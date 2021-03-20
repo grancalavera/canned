@@ -1,37 +1,31 @@
 import { QueryFunction, QueryFunctionContext } from "react-query";
-import { cannedResponseMapper, CannedResponseMapper } from "./canned-response-mapper";
+import {
+  cannedResponseMapper,
+  CannedResponseMapperOptions,
+} from "./canned-response-mapper";
 
 export type CannedRequestFn<TParams = any, TPageParam = any, TResponse = any> = (
   params: TParams,
   pageParam?: TPageParam
 ) => Promise<TResponse>;
 
-export interface CannedRequestFnOptions<
-  TParams = any,
-  TPageParam = any,
-  TResponse = any
-> {
-  requestFn: CannedRequestFn<TParams, TPageParam, TResponse>;
-}
-
 interface CannedQueryFunctionOptions<
-  TError extends Error,
   TResponse = any,
   TModel = any,
   TParams = any,
   TPageParam = any
-> extends CannedRequestFnOptions<TParams, TPageParam, TResponse> {
-  mapper: CannedResponseMapper<TError, TResponse, TModel>;
+> {
+  requestFn: CannedRequestFn<TParams, TPageParam, TResponse>;
+  mapper: CannedResponseMapperOptions<TResponse, TModel>;
 }
 
 export const cannedQueryFunction = <
-  TError extends Error,
   TResponse = any,
   TModel = any,
   TParams = any,
   TPageParam = any
 >(
-  options: CannedQueryFunctionOptions<TError, TResponse, TModel, TParams, TPageParam>
+  options: CannedQueryFunctionOptions<TResponse, TModel, TParams, TPageParam>
 ): QueryFunction<TModel> => {
   const { mapper, requestFn } = options;
   const map = cannedResponseMapper(mapper);

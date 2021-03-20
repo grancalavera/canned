@@ -6,11 +6,10 @@ import { cannedFetchClient } from "./canned/canned-fetch-client";
 import { cannedQueryFunction, CannedRequestFn } from "./canned/canned-query-function";
 import {
   alwaysFailResponseMapper,
-  CannedResponseMapper,
+  CannedResponseMapperOptions,
   constantMapper,
   naiveMapper,
 } from "./canned/canned-response-mapper";
-import { success } from "./canned/result";
 
 export const auth = process.env.REACT_APP_GITHUB_TOKEN;
 export const octokitClient = new Octokit({ auth });
@@ -19,7 +18,7 @@ interface UserByUsernameProps {
   queryKey: string;
   username: string;
   requestFn: CannedRequestFn<{ username: string }>;
-  mapper?: CannedResponseMapper<Error, any, any>;
+  mapper?: CannedResponseMapperOptions<any, any>;
   handleError?: (error: Error) => void;
 }
 
@@ -110,8 +109,8 @@ export const App = () => {
           queryKey="get-user-5"
           username="juanqwerty"
           mapper={{
-            mapResponse: success,
-            mapError: () => success({ username: "Juan Qwerty" }),
+            mapResponse: (x) => x,
+            mapError: () => ({ username: "Juan Qwerty" }),
           }}
           requestFn={getUserWithOctokit}
         />

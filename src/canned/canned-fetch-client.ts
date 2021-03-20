@@ -2,7 +2,7 @@ export interface CannedFetchClientOptions<TParams = any, TPageParam = any> {
   fetchFn: (params: TParams, pageParam?: TPageParam) => Promise<Response>;
 }
 
-export const cannedFetchClient = <TParams = any, TPageParam = any, TResponse = any>(
+export const cannedFetchClient = <TParams = any, TResponse = any, TPageParam = any>(
   options: CannedFetchClientOptions<TParams, TPageParam> &
     Partial<CannedResponseParserOptions>
 ) => {
