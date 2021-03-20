@@ -1,5 +1,4 @@
 import { RequestError } from "@octokit/types";
-import { FetchErrorParser } from "../canned/canned-response-parser";
 
 export type ApplicationError = RequestError | SimpleHttpError | CustomError | Error;
 
@@ -26,30 +25,6 @@ export const isRequestError = (unsafeError: any): unsafeError is RequestError =>
     typeof unsafeError.documentation_url === "string" &&
     Array.isArray(unsafeError.errors ?? [])
   );
-};
-
-export const parseHTTPError: FetchErrorParser = async (response) => {
-  const responseClone = response.clone();
-  let e: any;
-
-  try {
-    e = await response.json();
-  } catch {
-    e = await responseClone.text();
-  }
-
-  const error = new SimpleHttpError(
-    typeof e === "string" ? e : e.message ?? "Request failed",
-    response.status
-  );
-
-  return error;
-};
-
-export const parseJSONParseError: FetchErrorParser = async (response) => {
-  const responseText = await response.text();
-  const error = new CustomError(`JSON parse error. Response text: ${responseText}`);
-  return error;
 };
 
 export const isApplicationError = (e: unknown): e is ApplicationError => {
