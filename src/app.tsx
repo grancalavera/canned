@@ -5,27 +5,47 @@ import { ReactQueryDevtools } from "react-query/devtools";
 import { cannedFetchClient } from "./canned/canned-fetch-client";
 import { cannedQueryFunction, CannedRequestFn } from "./canned/canned-query-function";
 import {
-  alwaysFailResponseMapper,
-  CannedResponseMapperOptions,
-  constantMapper,
-  naiveMapper,
+  cannedResponseMapper,
+  CannedResponseMapper,
 } from "./canned/canned-response-mapper";
 
 export const auth = process.env.REACT_APP_GITHUB_TOKEN;
 export const octokitClient = new Octokit({ auth });
 
+const naiveResponseMapper = cannedResponseMapper({ mapResponse: (x) => x });
+
+function failResponseMapper<TResponse = never>(
+  error: Error
+): CannedResponseMapper<TResponse> {
+  return cannedResponseMapper({
+    mapResponse: () => {
+      throw error;
+    },
+  });
+}
+
+function constantResponseMapper<TResponse = any>(
+  response: TResponse
+): CannedResponseMapper<unknown, TResponse> {
+  return cannedResponseMapper({ mapResponse: () => response, mapError: () => response });
+}
+
+function naiveFallbackResponseMapper<TResponse = any>(fallback: TResponse) {
+  return cannedResponseMapper({ mapResponse: (x) => x, mapError: () => fallback });
+}
+
 interface UserByUsernameProps {
   queryKey: string;
   username: string;
   requestFn: CannedRequestFn<{ username: string }>;
-  mapper?: CannedResponseMapperOptions<any, any>;
+  mapper?: CannedResponseMapper<any, any>;
   handleError?: (error: Error) => void;
 }
 
 const UserByUsername = ({
   requestFn,
   username,
-  mapper = naiveMapper,
+  mapper = naiveResponseMapper,
   queryKey,
   handleError,
 }: UserByUsernameProps) => {
@@ -70,7 +90,7 @@ export const App = () => {
         <UserByUsername
           queryKey="get-user-1"
           username="grancalavera"
-          mapper={alwaysFailResponseMapper}
+          mapper={failResponseMapper(new Error("This will always fail."))}
           requestFn={getUserWithFetch}
         />
       </ErrorBoundary>
@@ -99,7 +119,7 @@ export const App = () => {
         <UserByUsername
           queryKey="get-user-4"
           username="juanqwerty"
-          mapper={constantMapper({ username: "Juan Qwerty" })}
+          mapper={constantResponseMapper({ username: "Juan Qwerty" })}
           requestFn={getUserWithOctokit}
         />
       </ErrorBoundary>
@@ -108,10 +128,7 @@ export const App = () => {
         <UserByUsername
           queryKey="get-user-5"
           username="juanqwerty"
-          mapper={{
-            mapResponse: (x) => x,
-            mapError: () => ({ username: "Juan Qwerty" }),
-          }}
+          mapper={naiveFallbackResponseMapper({ username: "Juan Qwerty" })}
           requestFn={getUserWithOctokit}
         />
       </ErrorBoundary>

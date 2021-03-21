@@ -58,7 +58,7 @@ const cannedResponseParser: CannedResponseParser = (options) => async (
   }
 };
 
-export const defaultParseHTTPError: ParseFetchError = async (response) => {
+const defaultParseHTTPError: ParseFetchError = async (response) => {
   const responseClone = response.clone();
   let e: any;
 
@@ -77,7 +77,7 @@ export const defaultParseHTTPError: ParseFetchError = async (response) => {
   return error;
 };
 
-export const defaultParseJSONParseError: ParseFetchError = async (response) => {
+const defaultParseJSONParseError: ParseFetchError = async (response) => {
   const responseText = await response.text();
   const error = new Error(`JSON parse error. Response text: ${responseText}`);
   return error;

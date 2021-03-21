@@ -1,8 +1,5 @@
 import { QueryFunction, QueryFunctionContext } from "react-query";
-import {
-  cannedResponseMapper,
-  CannedResponseMapperOptions,
-} from "./canned-response-mapper";
+import { CannedResponseMapper } from "./canned-response-mapper";
 
 export type CannedRequestFn<TParams = any, TPageParam = any, TResponse = any> = (
   params: TParams,
@@ -16,7 +13,7 @@ interface CannedQueryFunctionOptions<
   TPageParam = any
 > {
   requestFn: CannedRequestFn<TParams, TPageParam, TResponse>;
-  mapper: CannedResponseMapperOptions<TResponse, TModel>;
+  mapper: CannedResponseMapper<TResponse, TModel>;
 }
 
 export const cannedQueryFunction = <
@@ -27,8 +24,10 @@ export const cannedQueryFunction = <
 >(
   options: CannedQueryFunctionOptions<TResponse, TModel, TParams, TPageParam>
 ): QueryFunction<TModel> => {
-  const { mapper, requestFn } = options;
-  const map = cannedResponseMapper(mapper);
+  const {
+    mapper: { fromResponse, fromError },
+    requestFn,
+  } = options;
 
   const queryFunction: QueryFunction<TModel> = async (
     context: QueryFunctionContext<[string, TParams], TPageParam>
@@ -43,11 +42,11 @@ export const cannedQueryFunction = <
     try {
       response = await requestFn(params, pageParam);
     } catch (error) {
-      const fallback = map.fromError(error);
+      const fallback = fromError(error);
       return fallback;
     }
 
-    const result = map.fromResponse(response);
+    const result = fromResponse(response);
     return result;
   };
 
