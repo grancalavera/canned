@@ -17,8 +17,8 @@ export const cannedFetchClient = (
       const error = parseHTTPError(response.status, response.statusText, response);
       throw error;
     } else {
-      const error = new Error(response.statusText);
-      error.name = response.status.toString();
+      const error = new Error(`${response.status} ${response.statusText}`);
+      error.name = "HttpError";
       throw error;
     }
   }

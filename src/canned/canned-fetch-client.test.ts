@@ -23,10 +23,10 @@ describe("canned fetch client", () => {
         })
     );
 
-    const error = new Error("Bad Request");
-    error.name = "400";
+    const error = new Error("400 Bad Request");
+    error.name = "HttpError";
 
-    return expect(sendRequest({})).rejects.toEqual(error);
+    return expect(sendRequest({})).rejects.toThrowError(error);
   });
 
   it("non json responses should throw", () => {
