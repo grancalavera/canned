@@ -24,7 +24,7 @@ export interface CannedResponseMapper<TResponse = any, TModel = any> {
 }
 
 /**
- * Creates a pair of function to map successful Response or Errors into
+ * Creates a pair of functions to map successful Response or Errors into
  * an arbitrary model.
  * @param mapper the mapper configuration CannedResponseMapper<TResponse, TModel>
  * @returns CannedMappingFns<TResponse, TModel>
