@@ -2,7 +2,7 @@ import { Octokit } from "@octokit/rest";
 import React, { ErrorInfo, useCallback, useState } from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
-import { cannedFetchClient } from "./canned/canned-fetch-client";
+import { defaultCannedFetchClient } from "./canned/canned-fetch-client";
 import { cannedQueryFunction, CannedRequestFn } from "./canned/canned-query-function";
 import {
   cannedResponseMapper,
@@ -185,15 +185,14 @@ const ShowError = ({ error, title }: { error: Error; title: string }) => {
   );
 };
 
-const getUserWithFetch = cannedFetchClient<{ username: string }>({
-  fetchFn: ({ username }) =>
-    fetch(`https://api.github.com/users/${username}`, {
-      headers: {
-        Accept: "application/vnd.github.v3+json",
-        Authorization: `Bearer ${auth}`,
-      },
-    }),
-});
+const getUserWithFetch = defaultCannedFetchClient(({ username }: { username: string }) =>
+  fetch(`https://api.github.com/users/${username}`, {
+    headers: {
+      Accept: "application/vnd.github.v3+json",
+      Authorization: `Bearer ${auth}`,
+    },
+  })
+);
 
 const getUserWithOctokit = octokitClient.users.getByUsername;
 const errorStyle = { backgroundColor: "red", color: "white", padding: 10 };
