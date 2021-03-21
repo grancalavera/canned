@@ -1,84 +1,23 @@
-export interface CannedFetchClientOptions<TParams = any, TPageParam = any> {
-  fetchFn: (params: TParams, pageParam?: TPageParam) => Promise<Response>;
+export type FetchClient<TParams = unknown, TResult = unknown> = (
+  params: TParams
+) => Promise<TResult>;
+
+export interface FetchClientOptions<TParams = unknown, TResult = unknown> {
+  fetchFn: FetchClient<TParams, Response>;
+  parseHTTPError?: FetchClient<Response, TResult>;
 }
 
-export const cannedFetchClient = <TParams = any, TResponse = any, TPageParam = any>(
-  options: CannedFetchClientOptions<TParams, TPageParam> &
-    Partial<CannedResponseParserOptions>
-) => {
-  const { fetchFn, ...parserOptions } = options;
-  const parseResponse = cannedResponseParser({
-    parseHTTPError: parserOptions.parseHTTPError ?? defaultParseHTTPError,
-    parseJSONParseError: parserOptions.parseJSONParseError ?? defaultParseJSONParseError,
-  });
+export const cannedFetchClient = <TResult = unknown, TParams = unknown>(
+  options: FetchClientOptions<TParams, TResult>
+): FetchClient<TParams, TResult> => async (params) => {
+  const response = await options.fetchFn(params);
+  const result = await response.json();
 
-  const fetchRequest = async (
-    params: TParams,
-    pageParam?: TPageParam
-  ): Promise<TResponse> => {
-    const response = await fetchFn(params, pageParam);
-    const result = await parseResponse<TResponse>(response);
+  if (response.ok) {
     return result;
-  };
-
-  return fetchRequest;
-};
-
-export type ParseFetchError = (response: Response) => Promise<Error>;
-export type ParseFetchResponse = <T extends any = any>(response: Response) => Promise<T>;
-
-export interface CannedResponseParserOptions {
-  parseHTTPError: ParseFetchError;
-  parseJSONParseError: ParseFetchError;
-}
-
-export interface CannedResponseParser {
-  (options: CannedResponseParserOptions): <T extends any = any>(
-    response: Response
-  ) => Promise<T>;
-}
-
-const cannedResponseParser: CannedResponseParser = (options) => async (
-  response: Response
-) => {
-  const { parseHTTPError, parseJSONParseError } = options;
-  const responseClone = response.clone();
-
-  if (!response.ok) {
-    const error = await parseHTTPError(responseClone);
+  } else {
+    const error = new Error(response.statusText);
+    error.name = response.status.toString();
     throw error;
   }
-
-  try {
-    const result = await response.json();
-    return result;
-  } catch (e) {
-    const error = await parseJSONParseError(responseClone);
-    throw error;
-  }
-};
-
-const defaultParseHTTPError: ParseFetchError = async (response) => {
-  const responseClone = response.clone();
-  let e: any;
-
-  try {
-    e = await response.json();
-  } catch {
-    e = await responseClone.text();
-  }
-
-  const message: string = `${response.status} ${
-    typeof e === "string" ? e : e.message ?? "Request failed"
-  }`;
-
-  const error = new Error(message);
-  error.name = "HttpError";
-  return error;
-};
-
-const defaultParseJSONParseError: ParseFetchError = async (response) => {
-  const responseText = await response.text();
-  const error = new Error(`JSON parse error. Response text: ${responseText}`);
-  return error;
 };
