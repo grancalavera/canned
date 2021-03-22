@@ -1,9 +1,15 @@
 import { Octokit } from "@octokit/rest";
 import React, { ErrorInfo, useCallback, useState } from "react";
-import { QueryClient, QueryClientProvider, useQuery } from "react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  QueryFunction,
+  QueryFunctionContext,
+  useQuery,
+} from "react-query";
 import { ReactQueryDevtools } from "react-query/devtools";
 import { defaultCannedFetchClient } from "./canned/canned-fetch-client";
-import { cannedQueryFunction, CannedRequestFn } from "./canned/canned-query-function";
+import { cannedQueryFunction } from "./canned/canned-query-function";
 import {
   cannedResponseMapper,
   CannedResponseMapper,
@@ -37,7 +43,7 @@ function naiveFallbackResponseMapper<TResponse = any>(fallback: TResponse) {
 interface UserByUsernameProps {
   queryKey: string;
   username: string;
-  requestFn: CannedRequestFn<{ username: string }>;
+  requestFn: QueryFunction;
   mapper?: CannedResponseMapper<any, any>;
   handleError?: (error: Error) => void;
 }
@@ -185,16 +191,32 @@ const ShowError = ({ error, title }: { error: Error; title: string }) => {
   );
 };
 
-const getUserWithFetch = defaultCannedFetchClient(({ username }: { username: string }) =>
-  fetch(`https://api.github.com/users/${username}`, {
+const f: QueryFunction<any> = (
+  context: QueryFunctionContext<[string, { username: string }]>
+) => {
+  const {
+    queryKey: [, params],
+  } = context;
+  return fetch(`https://api.github.com/users/${params.username}`, {
     headers: {
       Accept: "application/vnd.github.v3+json",
       Authorization: `Bearer ${auth}`,
     },
-  })
-);
+  });
+};
 
-const getUserWithOctokit = octokitClient.users.getByUsername;
+const getUserWithFetch = defaultCannedFetchClient(f);
+
+const getUserWithOctokit: QueryFunction<any> = (
+  context: QueryFunctionContext<[string, { username: string }]>
+) => {
+  const {
+    queryKey: [, params],
+  } = context;
+
+  return octokitClient.users.getByUsername(params);
+};
+
 const errorStyle = { backgroundColor: "red", color: "white", padding: 10 };
 
 const queryClient = new QueryClient({
