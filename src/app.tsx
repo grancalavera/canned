@@ -17,6 +17,11 @@ import {
 
 export const auth = process.env.REACT_APP_GITHUB_TOKEN;
 export const octokitClient = new Octokit({ auth });
+type GetUserQueryKey = [string, { username: string }];
+const getUserQueryKey = (keyname: string, username: string): GetUserQueryKey => [
+  keyname,
+  { username },
+];
 
 const naiveResponseMapper = cannedResponseMapper({ mapResponse: (x) => x });
 
@@ -41,8 +46,7 @@ function naiveFallbackResponseMapper<TResponse = any>(fallback: TResponse) {
 }
 
 interface UserByUsernameProps {
-  queryKey: string;
-  username: string;
+  queryKey: GetUserQueryKey;
   requestFn: QueryFunction;
   mapper?: CannedResponseMapper<any, any>;
   handleError?: (error: Error) => void;
@@ -50,22 +54,23 @@ interface UserByUsernameProps {
 
 const UserByUsername = ({
   requestFn,
-  username,
   mapper = naiveResponseMapper,
   queryKey,
   handleError,
 }: UserByUsernameProps) => {
   const result = useQuery({
-    queryKey: [queryKey, { username }],
+    queryKey,
     queryFn: cannedQueryFunction({ mapper, requestFn }),
     useErrorBoundary: !handleError,
     onError: handleError,
   });
 
+  const [keyname, { username }] = queryKey;
+
   return (
     <>
       <h1>
-        username: {username}, query key: {queryKey}
+        username: {username}, query name: {keyname}
       </h1>
       {result.data && <pre>{JSON.stringify(result.data, null, 2)}</pre>}
       {result.error && <ShowError error={result.error} title="Component" />}
@@ -94,8 +99,7 @@ export const App = () => {
       {/* Failures */}
       <ErrorBoundary>
         <UserByUsername
-          queryKey="get-user-1"
-          username="grancalavera"
+          queryKey={getUserQueryKey("get-user-1", "grancalavera")}
           mapper={failResponseMapper(new Error("This will always fail."))}
           requestFn={getUserWithFetch}
         />
@@ -103,8 +107,7 @@ export const App = () => {
       <hr />
       <ErrorBoundary>
         <UserByUsername
-          queryKey="get-user-2"
-          username="juanqwerty"
+          queryKey={getUserQueryKey("get-user-2", "juanqwerty")}
           requestFn={getUserWithOctokit}
           handleError={handleError}
         />
@@ -112,8 +115,7 @@ export const App = () => {
       <hr />
       <ErrorBoundary>
         <UserByUsername
-          queryKey="get-user-3"
-          username="juanqwerty"
+          queryKey={getUserQueryKey("get-user-3", "juanqwerty")}
           requestFn={getUserWithFetch}
           handleError={handleError}
         />
@@ -123,8 +125,7 @@ export const App = () => {
       {/* Successes */}
       <ErrorBoundary>
         <UserByUsername
-          queryKey="get-user-4"
-          username="juanqwerty"
+          queryKey={getUserQueryKey("get-user-4", "juanqwerty")}
           mapper={constantResponseMapper({ username: "Juan Qwerty" })}
           requestFn={getUserWithOctokit}
         />
@@ -132,8 +133,7 @@ export const App = () => {
       <hr />
       <ErrorBoundary>
         <UserByUsername
-          queryKey="get-user-5"
-          username="juanqwerty"
+          queryKey={getUserQueryKey("get-user-5", "juanqwerty")}
           mapper={naiveFallbackResponseMapper({ username: "Juan Qwerty" })}
           requestFn={getUserWithOctokit}
         />
@@ -141,16 +141,14 @@ export const App = () => {
       <hr />
       <ErrorBoundary>
         <UserByUsername
-          queryKey="get-user-6"
-          username="grancalavera"
+          queryKey={getUserQueryKey("get-user-6", "grancalavera")}
           requestFn={getUserWithFetch}
         />
       </ErrorBoundary>
       <hr />
       <ErrorBoundary>
         <UserByUsername
-          queryKey="get-user-7"
-          username="grancalavera"
+          queryKey={getUserQueryKey("get-user-7", "grancalavera")}
           requestFn={getUserWithOctokit}
         />
       </ErrorBoundary>
@@ -191,24 +189,22 @@ const ShowError = ({ error, title }: { error: Error; title: string }) => {
   );
 };
 
-const f: QueryFunction<any> = (
-  context: QueryFunctionContext<[string, { username: string }]>
-) => {
-  const {
-    queryKey: [, params],
-  } = context;
-  return fetch(`https://api.github.com/users/${params.username}`, {
-    headers: {
-      Accept: "application/vnd.github.v3+json",
-      Authorization: `Bearer ${auth}`,
-    },
-  });
-};
-
-const getUserWithFetch = defaultCannedFetchClient(f);
+const getUserWithFetch = defaultCannedFetchClient(
+  (context: QueryFunctionContext<GetUserQueryKey>) => {
+    const {
+      queryKey: [, params],
+    } = context;
+    return fetch(`https://api.github.com/users/${params.username}`, {
+      headers: {
+        Accept: "application/vnd.github.v3+json",
+        Authorization: `Bearer ${auth}`,
+      },
+    });
+  }
+);
 
 const getUserWithOctokit: QueryFunction<any> = (
-  context: QueryFunctionContext<[string, { username: string }]>
+  context: QueryFunctionContext<GetUserQueryKey>
 ) => {
   const {
     queryKey: [, params],
