@@ -97,6 +97,7 @@ export const App = () => {
           <hr />
         </div>
       ))}
+
       {/* Failures */}
       <ErrorBoundary>
         <UserByUsername
