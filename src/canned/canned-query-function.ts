@@ -1,31 +1,24 @@
-import { QueryFunction, QueryFunctionContext } from "react-query";
+import { QueryFunction } from "react-query";
 import { CannedResponseMapper } from "./canned-response-mapper";
 
-interface CannedQueryFunctionOptions<TResponse = any, TModel = any> {
-  requestFn: QueryFunction<TResponse>;
+interface CannedQueryFunctionOptions<TResponse = unknown, TModel = unknown> {
+  queryFn: QueryFunction<TResponse>;
   mapper: CannedResponseMapper<TResponse, TModel>;
 }
 
-export const cannedQueryFunction = <
-  TResponse = any,
-  TModel = any,
-  TParams = any,
-  TPageParam = any
->(
+export const cannedQueryFunction = <TResponse = unknown, TModel = unknown>(
   options: CannedQueryFunctionOptions<TResponse, TModel>
 ): QueryFunction<TModel> => {
   const {
     mapper: { fromResponse, fromError },
-    requestFn,
+    queryFn,
   } = options;
 
-  const queryFunction: QueryFunction<TModel> = async (
-    context: QueryFunctionContext<[string, TParams], TPageParam>
-  ) => {
+  const queryFunction: QueryFunction<TModel> = async (context) => {
     let response: TResponse;
 
     try {
-      response = await requestFn(context);
+      response = await queryFn(context);
     } catch (error) {
       const fallback = fromError(error);
       return fallback;

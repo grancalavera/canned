@@ -18,8 +18,9 @@ import {
 export const auth = process.env.REACT_APP_GITHUB_TOKEN;
 export const octokitClient = new Octokit({ auth });
 type GetUserQueryKey = [string, { username: string }];
-const getUserQueryKey = (keyname: string, username: string): GetUserQueryKey => [
-  keyname,
+
+const getUserQueryKey = (keyName: string, username: string): GetUserQueryKey => [
+  keyName,
   { username },
 ];
 
@@ -47,30 +48,30 @@ function naiveFallbackResponseMapper<TResponse = any>(fallback: TResponse) {
 
 interface UserByUsernameProps {
   queryKey: GetUserQueryKey;
-  requestFn: QueryFunction;
+  queryFn: QueryFunction;
   mapper?: CannedResponseMapper<any, any>;
   handleError?: (error: Error) => void;
 }
 
 const UserByUsername = ({
-  requestFn,
+  queryFn,
   mapper = naiveResponseMapper,
   queryKey,
   handleError,
 }: UserByUsernameProps) => {
   const result = useQuery({
     queryKey,
-    queryFn: cannedQueryFunction({ mapper, requestFn }),
+    queryFn: cannedQueryFunction({ mapper, queryFn }),
     useErrorBoundary: !handleError,
     onError: handleError,
   });
 
-  const [keyname, { username }] = queryKey;
+  const [keyName, { username }] = queryKey;
 
   return (
     <>
       <h1>
-        username: {username}, query name: {keyname}
+        username: {username}, key name: {keyName}
       </h1>
       {result.data && <pre>{JSON.stringify(result.data, null, 2)}</pre>}
       {result.error && <ShowError error={result.error} title="Component" />}
@@ -101,14 +102,14 @@ export const App = () => {
         <UserByUsername
           queryKey={getUserQueryKey("get-user-1", "grancalavera")}
           mapper={failResponseMapper(new Error("This will always fail."))}
-          requestFn={getUserWithFetch}
+          queryFn={getUserWithFetch}
         />
       </ErrorBoundary>
       <hr />
       <ErrorBoundary>
         <UserByUsername
           queryKey={getUserQueryKey("get-user-2", "juanqwerty")}
-          requestFn={getUserWithOctokit}
+          queryFn={getUserWithOctokit}
           handleError={handleError}
         />
       </ErrorBoundary>
@@ -116,7 +117,7 @@ export const App = () => {
       <ErrorBoundary>
         <UserByUsername
           queryKey={getUserQueryKey("get-user-3", "juanqwerty")}
-          requestFn={getUserWithFetch}
+          queryFn={getUserWithFetch}
           handleError={handleError}
         />
       </ErrorBoundary>
@@ -127,7 +128,7 @@ export const App = () => {
         <UserByUsername
           queryKey={getUserQueryKey("get-user-4", "juanqwerty")}
           mapper={constantResponseMapper({ username: "Juan Qwerty" })}
-          requestFn={getUserWithOctokit}
+          queryFn={getUserWithOctokit}
         />
       </ErrorBoundary>
       <hr />
@@ -135,21 +136,21 @@ export const App = () => {
         <UserByUsername
           queryKey={getUserQueryKey("get-user-5", "juanqwerty")}
           mapper={naiveFallbackResponseMapper({ username: "Juan Qwerty" })}
-          requestFn={getUserWithOctokit}
+          queryFn={getUserWithOctokit}
         />
       </ErrorBoundary>
       <hr />
       <ErrorBoundary>
         <UserByUsername
           queryKey={getUserQueryKey("get-user-6", "grancalavera")}
-          requestFn={getUserWithFetch}
+          queryFn={getUserWithFetch}
         />
       </ErrorBoundary>
       <hr />
       <ErrorBoundary>
         <UserByUsername
           queryKey={getUserQueryKey("get-user-7", "grancalavera")}
-          requestFn={getUserWithOctokit}
+          queryFn={getUserWithOctokit}
         />
       </ErrorBoundary>
       <ReactQueryDevtools />

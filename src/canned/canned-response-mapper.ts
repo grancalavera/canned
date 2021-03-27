@@ -1,7 +1,7 @@
 /**
  * Specification for response mapping.
  */
-export interface CannedResponseMapperOptions<TResponse = any, TModel = any> {
+export interface CannedResponseMapperOptions<TResponse = unknown, TModel = unknown> {
   /**
    * Maps a request response response to the application's data model.
    * @throws {Error} if TResponse fails to map to TModel
@@ -18,7 +18,7 @@ export interface CannedResponseMapperOptions<TResponse = any, TModel = any> {
 /**
  * Two functions to map either a response or an error into a model
  */
-export interface CannedResponseMapper<TResponse = any, TModel = any> {
+export interface CannedResponseMapper<TResponse = unknown, TModel = unknown> {
   fromResponse: (response: TResponse) => TModel;
   fromError: (error: any) => TModel;
 }
@@ -29,7 +29,7 @@ export interface CannedResponseMapper<TResponse = any, TModel = any> {
  * @param mapper the mapper configuration CannedResponseMapper<TResponse, TModel>
  * @returns CannedMappingFns<TResponse, TModel>
  */
-export const cannedResponseMapper = <TResponse = any, TModel = any>({
+export const cannedResponseMapper = <TResponse = unknown, TModel = unknown>({
   mapResponse,
   mapError,
 }: CannedResponseMapperOptions<TResponse, TModel>): CannedResponseMapper<
